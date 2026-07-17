@@ -17,6 +17,17 @@
   <log message="echo launch param use_sim_time: $(var use_sim_time) launch_vehicle_interface: $(var launch_vehicle_interface) sensor_model: $(var sensor_model)"/>
 
   <!-- Control method -->
+  <!--
+    control_method options:
+      mpc            - multi_purpose_mpc_ros (default; hand-tuned baseline)
+      pure_pursuit   - simple_pure_pursuit
+      tiny_lidar_net - end-to-end CNN on /sensing/lidar/scan
+      pilot_net      - end-to-end CNN on /sensing/camera/image_raw
+      joycon         - teleop_manager
+      rl_train       - launches awsim_reset_bridge only; the SB3 inference loop
+                       in aichallenge/ml_workspace/reinforcement_learning/ must be
+                       started manually in a container shell
+  -->
   <arg name="control_method" default="mpc"
       description="Select control: mpc, pure_pursuit, tiny_lidar_net, pilot_net, joycon, rl_train"/>
 
@@ -140,10 +151,22 @@
     </include>
   </group>
 
+  <!-- Control method -->
+  <arg name="use_speed_multiplier" default="false" description="Enable RL speed multiplier on MPC"/>
+
   <group if="$(eval &quot;'$(var control_method)' == 'mpc'&quot;)">
     <include file="$(find-pkg-share aichallenge_submit_launch)/launch/control/mpc.launch.xml">
       <arg name="use_sim_time" value="$(var use_sim_time)"/>
     </include>
+
+    <!-- RL speed multiplier (Option 3): runs alongside MPC, modifies per-section ref_vel via ROS params -->
+    <group if="$(var use_speed_multiplier)">
+      <arg name="multiplier_policy_path" default="" description="path to trained SB3 PPO policy.zip"/>
+      <include file="$(find-pkg-share multiplier_controller)/launch/multiplier_controller.launch.xml">
+        <arg name="policy_path" value="$(var multiplier_policy_path)"/>
+        <arg name="num_sections" value="10"/>
+      </include>
+    </group>
   </group>
 
   <group if="$(eval &quot;'$(var control_method)' == 'tiny_lidar_net'&quot;)">

@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="policy_path" default="" description="Path to trained SB3 policy.zip (empty = random init)"/>
+  <arg name="num_sections" default="10" description="Number of sections in ref_vel.yaml"/>
+
+  <node pkg="multiplier_controller" exec="multiplier_controller_node" output="screen">
+    <param name="policy_path" value="$(var policy_path)"/>
+    <param name="num_sections" value="$(var num_sections)"/>
+  </node>
+</launch>

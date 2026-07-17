@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(rl_train_controller)
+project(multiplier_controller)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
@@ -9,14 +9,19 @@ ament_python_install_package(${PROJECT_NAME})
 
 # Install entry point script for the node
 install(PROGRAMS
-  rl_train_controller/rl_train_controller_node.py
+  multiplier_controller/multiplier_controller_node.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
-# Install launch, config and checkpoint files to share
+# Install launch files
 install(DIRECTORY
   launch
   DESTINATION share/${PROJECT_NAME}
 )
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
 
 ament_package()
