@@ -54,10 +54,15 @@ awsim-request-start:
 awsim-request-reset:
 	CMD="env ROS_DOMAIN_ID=0 ros2 topic pub -1 /admin/awsim/reset std_msgs/msg/Empty '{}'" docker compose run --rm --no-deps autoware-command
 
+# run combined AWSIM + Autoware (single container, no DDS cross-container issues)
+combined:
+	@echo "Start combined AWSIM + Autoware (single container)"
+	LOG_DIR=$(LOG_DIR) docker compose up -d combined
+
 # run simulator (docker compose up -d simulator)
 simulator:
 	@echo "Start AWSIM (SIM_MODE=$(SIM_MODE))"
-	LOG_DIR=$(LOG_DIR) SIM_MODE="$(SIM_MODE)" ROS_DOMAIN_ID=0 docker compose up -d simulator
+	LOG_DIR=$(LOG_DIR) SIM_MODE="$(SIM_MODE)" ROS_DOMAIN_ID=0 HEADLESS=$(HEADLESS) docker compose up -d simulator
 
 # racing kart (docker compose up -d driver)
 driver:

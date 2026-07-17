@@ -9,7 +9,7 @@ vehicles="${1:-1}"
 # GPUがない場合 -headlessを末尾に追加
 exec $AWSIM_DIRECTORY/AWSIM.x86_64 \
     --start-mode count \
-    --start-count-seconds 5 \
+    --start-count-seconds 0 \
     --vehicles "${vehicles}" \
     --npcs 0 \
     --boosts 2 \
