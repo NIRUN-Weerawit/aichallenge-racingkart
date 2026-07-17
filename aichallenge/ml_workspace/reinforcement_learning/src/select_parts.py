@@ -62,6 +62,25 @@ def select_algorithm(algorithm_cfg: dict, env):
             policy_kwargs=_build_policy_kwargs(algorithm_cfg),
         )
 
+    elif name == "ppo":
+        from stable_baselines3 import PPO
+
+        return PPO(
+            str(algorithm_cfg.get("policy", "MlpPolicy")),
+            env,
+            verbose=int(algorithm_cfg.get("verbose", 1)),
+            tensorboard_log=algorithm_cfg.get("tensorboard_log", "./awsim_ppo_log/"),
+            learning_rate=float(algorithm_cfg.get("learning_rate", 3e-4)),
+            n_steps=int(algorithm_cfg.get("n_steps", 2048)),
+            batch_size=int(algorithm_cfg.get("batch_size", 64)),
+            n_epochs=int(algorithm_cfg.get("n_epochs", 10)),
+            gamma=float(algorithm_cfg.get("gamma", 0.99)),
+            gae_lambda=float(algorithm_cfg.get("gae_lambda", 0.95)),
+            clip_range=float(algorithm_cfg.get("clip_range", 0.2)),
+            ent_coef=float(algorithm_cfg.get("ent_coef", 0.01)),
+            policy_kwargs=_build_policy_kwargs(algorithm_cfg),
+        )
+
     raise ValueError(f"Unknown algorithm name: {name}")
 
 
@@ -69,8 +88,10 @@ def select_algorithm_class(algorithm_cfg: dict) -> Type:
     name = str(algorithm_cfg.get("name", "sac")).lower()
     if name == "sac":
         from stable_baselines3 import SAC
-
         return SAC
+    elif name == "ppo":
+        from stable_baselines3 import PPO
+        return PPO
     raise ValueError(f"Unknown algorithm name: {name}")
 
 
@@ -120,12 +141,19 @@ def select_observation_builder(observation_cfg: dict) -> ImageSpeedObservationBu
     raise ValueError(f"Unknown observation builder name: {name}")
 
 
-def select_reward_function(reward_cfg: dict) -> DefaultAWSIMReward:
+def select_reward_function(reward_cfg: dict):
     name = str(reward_cfg.get("name", "default_awsim_reward")).lower()
     if name == "default_awsim_reward":
         return DefaultAWSIMReward(
             speed_reward_scale=float(reward_cfg["speed_reward_scale"]),
             step_time_penalty=float(reward_cfg["step_time_penalty"]),
+            collision_penalty=float(reward_cfg.get("collision_penalty", 100.0)),
+        )
+    elif name == "progress_speed_reward":
+        from reward.progress_reward import ProgressSpeedReward
+        return ProgressSpeedReward(
+            progress_bonus=float(reward_cfg.get("progress_bonus", 1.0)),
+            speed_reward_scale=float(reward_cfg.get("speed_reward_scale", 0.05)),
             collision_penalty=float(reward_cfg.get("collision_penalty", 100.0)),
         )
     raise ValueError(f"Unknown reward function name: {name}")

@@ -1,0 +1,46 @@
+# Option 3 — PPO speed multiplier for MPC reference velocity
+algorithm:
+  name: ppo
+  policy: MlpPolicy
+  verbose: 1
+  learning_rate: 0.0003
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.01
+  net_arch: [64, 64]
+  total_timesteps: 30000
+
+reward:
+  name: progress_speed_reward
+  progress_bonus: 1.0
+  speed_reward_scale: 0.05
+  collision_penalty: 100.0
+
+termination:
+  name: default_collision_termination
+  collision_speed_threshold: 10.0
+  collision_count_threshold: 3
+  collision_speed_drop_threshold: 1.0
+  min_speed_before_drop: 2.0
+
+observation:
+  name: default_image_speed_observation_builder
+
+action:
+  name: default_awsim_action_adapter
+  min_steering: -1.0
+  max_steering: 1.0
+  min_accel: -5.0
+  max_accel: 5.0
+
+context:
+  name: default_awsim_context_manager
+
+multiplier_env:
+  num_sections: 10
+  min_multiplier: 0.7
+  max_multiplier: 1.3
