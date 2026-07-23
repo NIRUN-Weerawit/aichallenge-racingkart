@@ -3,6 +3,11 @@
 *.log
 *.webm
 *.db3
+# Training artifacts
+ml_workspace/reinforcement_learning/workspace/option3/log/
+ml_workspace/reinforcement_learning/workspace/option3/model.zip
+ml_workspace/reinforcement_learning/workspace/option3/run_*/
+ml_workspace/reinforcement_learning/wandb/
 *.mcap
 rosbag2*/
 *.pyc

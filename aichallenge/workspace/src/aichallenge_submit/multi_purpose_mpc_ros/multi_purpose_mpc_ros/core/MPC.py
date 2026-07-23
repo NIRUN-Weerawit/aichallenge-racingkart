@@ -48,6 +48,9 @@ class MPC:
         self.max_steering_rate = max_steering_rate
         self.previous_steering = 0.0  # 前回のステア角
 
+        # Per-step velocity profile from RL (20 elements, or None for default)
+        self._ref_vel_profile = None
+
         # 追加: ay_maxによる速度制限の方式切り替え
         self.use_max_kappa_pred = use_max_kappa_pred
         # 既存の初期化
@@ -79,6 +82,10 @@ class MPC:
 
     def update_QN(self, QN: np.ndarray):
         self.QN = QN
+
+    def set_ref_vel_profile(self, profile: np.ndarray):
+        """Set per-step velocity profile for the prediction horizon."""
+        self._ref_vel_profile = profile
 
     def _init_problem(self, N, safety_margin):
         """
@@ -122,9 +129,17 @@ class MPC:
             delta_s = next_waypoint - current_waypoint
             kappa_ref = current_waypoint.kappa
 
-            # Clip reference velocity
-            v_ref = np.clip(current_waypoint.v_ref, self.input_constraints['umin'][0], self.input_constraints['umax'][0])
-
+            # Use RL velocity profile if available, otherwise fall back to waypoint default
+            if self._ref_vel_profile is not None and n < len(self._ref_vel_profile):
+                v_ref = self._ref_vel_profile[n]
+                if n == 0:
+                    print(f"[MPC] using RL profile step {n}: v_ref={v_ref:.2f}")
+            else:
+                v_ref = current_waypoint.v_ref
+                if n == 0:
+                    print(f"[MPC] NO RL profile — fallback to waypoint v_ref={v_ref:.2f}")
+            v_ref = np.clip(v_ref, self.input_constraints['umin'][0], self.input_constraints['umax'][0])
+            # print(f"v_ref =  {v_ref}")
             # Compute LTV matrices
             f, A_lin, B_lin = self.model.linearize(v_ref, kappa_ref, delta_s)
             A[(n+1) * self.nx: (n+2)*self.nx, n * self.nx:(n+1)*self.nx] = A_lin
@@ -269,6 +284,14 @@ class MPC:
             control_signals[1::2] = np.arctan(control_signals[1::2] * self.model.length)
             v = control_signals[0]
             delta = control_signals[1]
+
+            # Override velocity with RL profile if active (hard constraint)
+            if self._ref_vel_profile is not None:
+                v = float(self._ref_vel_profile[0])
+                control_signals[0] = v
+
+            ref_v0_str = "NONE" if self._ref_vel_profile is None else f"{self._ref_vel_profile[0]:.2f}"
+            print(f"[MPC] CMD: v={v:.2f} delta={delta:.3f} | ref_v0={ref_v0_str}")
 
             # ステアレートの制限を適用
             max_delta_change = self.max_steering_rate * self.model.Ts

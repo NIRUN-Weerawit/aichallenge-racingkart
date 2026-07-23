@@ -541,6 +541,12 @@ class MPCController(Node):
             self._condition_sub = self.create_subscription(
                 Int32, "/aichallenge/pitstop/condition", self._condition_callback, 1)
 
+        # Velocity profile subscription (20-step horizon override from RL)
+        self._ref_vel_profile = None
+        self.create_subscription(
+            Float32MultiArray, "/mpc/ref_vel_profile",
+            self._ref_vel_profile_cb, 1)
+
         if self.USE_OBSTACLE_AVOIDANCE:
             if self._cfg.reference_path.use_path_constraints_topic: # type: ignore
                 self._path_constraints_sub = self.create_subscription(
@@ -645,6 +651,18 @@ class MPCController(Node):
             self._last_colliding_time = self.get_clock().now()
             self.get_logger().warning(f"Collision detected!")
         self._last_condition = msg.data
+
+    def _ref_vel_profile_cb(self, msg):
+        """Receive 20-step velocity profile from RL and pass to MPC."""
+        if len(msg.data) >= 20:
+            arr = np.array(msg.data[:20], dtype=np.float64)
+            self._ref_vel_profile = arr
+            self._mpc.set_ref_vel_profile(self._ref_vel_profile)
+            # ref_vel_kmph = min(
+            #                 kmh_to_m_per_sec(ref_vel_mps),
+            #                 self._mpc_cfg.v_max)
+            # self._mpc.update_v_max(ref_vel_kmph)
+            self.get_logger().info(f"[RL→MPC] received profile: min={arr.min():.2f} max={arr.max():.2f} mean={arr.mean():.2f}")
 
     def _stop_request_callback(self, msg: Empty) -> None:
         if self._enable_control:
@@ -807,7 +825,7 @@ class MPCController(Node):
             u, max_delta = self._mpc.get_control()
             # self.get_logger().info(f"u: {u}")
 
-        if self._ref_vel_configulator is not None:
+        if self._ref_vel_configulator is not None and self._mpc._ref_vel_profile is None:
             ref_vel_mps = self._ref_vel_configulator.get_ref_vel(self._mpc.model.wp_id)
             ref_vel_kmph = min(
                 kmh_to_m_per_sec(ref_vel_mps),

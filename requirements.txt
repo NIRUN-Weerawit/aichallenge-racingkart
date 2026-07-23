@@ -35,3 +35,6 @@ packaging>=22.0
 # 強化学習用
 gymnasium
 stable-baselines3[extra]
+
+# Experiment tracking
+wandb

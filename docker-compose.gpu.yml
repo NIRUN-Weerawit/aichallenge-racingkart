@@ -24,3 +24,6 @@ services:
 
   simulator:
     <<: *gpu
+
+  combined:
+    <<: *gpu

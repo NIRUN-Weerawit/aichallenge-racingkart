@@ -1,0 +1,13 @@
+{
+    "schema_version": "v1",
+    "all_passed": false,
+    "gate_arg": "1",
+    "scenario_folder": "SafetyGate",
+    "tests": [
+        {
+            "test_name": "test1",
+            "passed": false,
+            "fail_reason": "stop_zone_0_not_satisfied: inZone=False, stopped=True (timeout reached without stopping inside the STOP zone)"
+        }
+    ]
+}

@@ -156,6 +156,13 @@ def select_reward_function(reward_cfg: dict):
             speed_reward_scale=float(reward_cfg.get("speed_reward_scale", 0.05)),
             collision_penalty=float(reward_cfg.get("collision_penalty", 100.0)),
         )
+    elif name == "velocity_profile_reward":
+        from reward.velocity_profile_reward import VelocityProfileReward
+        return VelocityProfileReward(
+            smoothness_weight=float(reward_cfg.get("smoothness_weight", 0.1)),
+            speed_weight=float(reward_cfg.get("speed_weight", 0.01)),
+            collision_penalty=float(reward_cfg.get("collision_penalty", 100.0)),
+        )
     raise ValueError(f"Unknown reward function name: {name}")
 
 

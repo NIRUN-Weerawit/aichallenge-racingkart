@@ -54,7 +54,9 @@ if __name__ == '__main__':
 
     # ── Env construction ────────────────────────────────────────
     is_multiplier = 'multiplier_env' in cfgs
-    if is_multiplier:
+    is_velocity_profile = 'velocity_profile_env' in cfgs
+
+    if is_multiplier or is_velocity_profile:
         from rclpy.context import Context
         # Force localhost discovery so our new DDS participant finds AWSIM's bridge
         import os
@@ -64,15 +66,30 @@ if __name__ == '__main__':
         rclpy.init(context=ctx0, domain_id=0)
         ctx1 = Context()
         rclpy.init(context=ctx1, domain_id=1)
-        print("[INFO] Multiplier env active (ctx0=domain 0, ctx1=domain 1)")
-        from environment.multiplier_env import MultiplierEnvNode
-        meg     = cfgs['multiplier_env']
-        env_node = MultiplierEnvNode(
-            ctx0=ctx0, ctx1=ctx1,
-            min_mult=float(meg.get('min_multiplier', 0.7)),
-            max_mult=float(meg.get('max_multiplier', 1.3)),
-        )
-        env = env_node.env
+
+        if is_velocity_profile:
+            print("[INFO] Velocity profile env active (Option 4)")
+            from environment.velocity_profile_env import VelocityProfileEnvNode
+            vpe = cfgs['velocity_profile_env']
+            env_node = VelocityProfileEnvNode(
+                ctx0=ctx0, ctx1=ctx1,
+                horizon=int(vpe.get('horizon', 20)),
+                v_min=float(vpe.get('v_min', 0.1)),
+                v_max=float(vpe.get('v_max', 20.0)),
+                smoothness_weight=float(vpe.get('smoothness_weight', 0.1)),
+                speed_weight=float(vpe.get('speed_weight', 0.01)),
+            )
+            env = env_node.env
+        else:
+            print("[INFO] Multiplier env active (ctx0=domain 0, ctx1=domain 1)")
+            from environment.multiplier_env import MultiplierEnvNode
+            meg     = cfgs['multiplier_env']
+            env_node = MultiplierEnvNode(
+                ctx0=ctx0, ctx1=ctx1,
+                min_mult=float(meg.get('min_multiplier', 0.7)),
+                max_mult=float(meg.get('max_multiplier', 1.3)),
+            )
+            env = env_node.env
     else:
         env = AWSIMEnv(
             context_manager=context_manager,     action_adapter=action_adapter,
@@ -127,9 +144,19 @@ if __name__ == '__main__':
 
         model = select_algorithm(algorithm_cfg, env)
         total = int(algorithm_cfg.get('total_timesteps', 200_000))
+
+        # ── TensorBoard callback: log mean_v from info dict ─────
+        from stable_baselines3.common.callbacks import BaseCallback
+        class LogMeanVCallback(BaseCallback):
+            def _on_step(self):
+                if "mean_v" in self.locals.get("infos", [{}])[0]:
+                    self.logger.record("rollout/mean_v", self.locals["infos"][0]["mean_v"])
+                return True
+
         print(f"Starting training for {total} timesteps...\n")
         model.learn(total_timesteps=total,
-                    log_interval=int(algorithm_cfg.get('log_interval', 1)))
+                    log_interval=int(algorithm_cfg.get('log_interval', 1)),
+                    callback=LogMeanVCallback())
         model.save(algorithm_cfg['save_path'])
         print(f"\nTraining complete! Policy saved to: {algorithm_cfg['save_path']}")
 

@@ -1,0 +1,36 @@
+# Option 4 — PPO 20-step velocity profile for MPC
+algorithm:
+  name: ppo
+  policy: MlpPolicy
+  verbose: 1
+  learning_rate: 0.0003
+  n_steps: 2048
+  batch_size: 64
+  n_epochs: 10
+  gamma: 0.99
+  gae_lambda: 0.95
+  clip_range: 0.2
+  ent_coef: 0.01
+  policy_kwargs:
+    net_arch: [256, 256]
+  total_timesteps: 200000
+
+reward:
+  name: velocity_profile_reward
+  smoothness_weight: 0.01
+  speed_weight: 0.1
+  collision_penalty: 100.0
+
+termination:
+  name: default_collision_termination
+  collision_speed_threshold: 10.0
+  collision_count_threshold: 3
+  collision_speed_drop_threshold: 1.5
+  min_speed_before_drop: 2.0
+
+velocity_profile_env:
+  horizon: 20
+  v_min: 1.0
+  v_max: 10.0
+  smoothness_weight: 0.1
+  speed_weight: 0.01

@@ -1,0 +1,13 @@
+<launch>
+
+  <!-- awsim_reset_bridge_node
+       Forwards /awsim/reset (DOMAIN=1) to /admin/awsim/reset (DOMAIN=0).
+       Required by any ROS2 process that wants to reset AWSIM from
+       inside the Autoware-side ROS graph. -->
+  <node pkg="awsim_reset_bridge"
+        exec="awsim_reset_bridge_node.py"
+        name="awsim_reset_bridge"
+        output="screen">
+  </node>
+
+</launch>
