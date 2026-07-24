@@ -271,6 +271,7 @@ class VelocityProfileEnv(gym.Env):
             self._reset_awsim()
             with self._gate:
                 self._reset_state()
+            self._needs_reset = False
             return self._obs(), 0.0, False, False, {"reset": True}
 
         # ── Wait for AWSIM tick ────────────────────────────────
