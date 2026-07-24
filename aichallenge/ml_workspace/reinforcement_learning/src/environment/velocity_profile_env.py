@@ -171,7 +171,7 @@ class VelocityProfileEnv(gym.Env):
         self._prev_sec = -1         # ensure first section crossing fires
         self._prev_speed = 0.0
         self._low_speed_count = 0
-        self._needs_reset = False
+        # Don't clear _needs_reset here — it's consumed by step() after reset()
         self._post_reset_steps = 5  # grace ticks — stall check suspended
         self._step_count = 0
         self._prev_vel_profile = np.zeros(self._horizon, dtype=np.float32)
