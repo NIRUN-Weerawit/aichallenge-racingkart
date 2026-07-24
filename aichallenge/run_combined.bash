@@ -33,7 +33,7 @@ $AWSIM_DIRECTORY/AWSIM.x86_64 \
     --npcs 0 \
     --boosts 2 \
     --laps unlimited \
-    --timeout 10000000.0 \
+    --timeout unlimited \
     --steer-source ackermann \
     --sound off \
     --collisions on \
@@ -62,7 +62,7 @@ echo "[INFO] Starting Autoware on domain 1..."
 export ROS_DOMAIN_ID=1
 
 set -m
-/aichallenge/run_autoware.bash awsim 1 /output &
+/aichallenge/run_autoware.bash awsim-no-viz 1 /output &
 AUTOWARE_PID=$!
 
 trap 'kill -INT $AWSIM_PID $AUTOWARE_PID 2>/dev/null' TERM INT
@@ -74,3 +74,4 @@ while kill -0 $AUTOWARE_PID 2>/dev/null; do wait; done
 kill -INT $AWSIM_PID 2>/dev/null
 wait $AWSIM_PID 2>/dev/null
 echo "[INFO] Combined container shutting down."
+

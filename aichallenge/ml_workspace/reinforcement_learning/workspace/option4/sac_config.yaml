@@ -13,8 +13,10 @@ algorithm:
   train_freq: [1, step]
   gradient_steps: 1
   policy_kwargs:
-    net_arch: [256, 256]
-  total_timesteps: 200000
+    net_arch: [512, 512]
+    log_std_init: 0.0   # exp(0) = 1.0 — proper SAC exploration
+
+  total_timesteps: 1000000
 
 reward:
   name: velocity_profile_reward
@@ -28,6 +30,10 @@ termination:
   collision_count_threshold: 3
   collision_speed_drop_threshold: 1.5
   min_speed_before_drop: 2.0
+
+timelimit:
+  enable: true
+  max_episode_steps: 5000
 
 velocity_profile_env:
   horizon: 20

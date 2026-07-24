@@ -279,7 +279,7 @@ class VelocityProfileEnv(gym.Env):
         vel_profile = np.clip(
             action.astype(np.float64), self.action_space.low, self.action_space.high
         )
-        if self._step_count % 20 == 0:
+        if self._step_count % 200 == 0:
             mean_v = float(np.mean(vel_profile))
             print(f"[RL] step={self._step_count:4d} | mean_v={mean_v:.3f} | speed={self.speed:.2f} | section={self.section} | colliding={self.colliding}")
         msg = Float32MultiArray()
@@ -297,7 +297,7 @@ class VelocityProfileEnv(gym.Env):
 
             curr_speed = max(0.0, self.speed)
             sudden_drop = (self._prev_speed >= 1.0 and
-                           (self._prev_speed - curr_speed) >= 1.5)
+                           (self._prev_speed - curr_speed) >= 1.0)
             if curr_speed < 0.5:
                 self._low_speed_count += 1
             else:
@@ -306,6 +306,8 @@ class VelocityProfileEnv(gym.Env):
             # Stall only counted AFTER grace period elapses
             stalled = (self._post_reset_steps <= 0) and \
                       (self._low_speed_count >= 10)
+            if stalled:
+                print(f"STALLING : {self._post_reset_steps}")
             self.colliding = sudden_drop or stalled
             self._prev_speed = curr_speed
 
@@ -319,6 +321,7 @@ class VelocityProfileEnv(gym.Env):
 
         terminated = bool(self.colliding and self.speed < 1.0)
         if terminated:
+            print(" EPISODE TERMINATED")
             self._needs_reset = True
 
         # Save action for observation continuity

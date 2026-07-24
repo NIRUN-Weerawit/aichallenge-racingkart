@@ -658,11 +658,7 @@ class MPCController(Node):
             arr = np.array(msg.data[:20], dtype=np.float64)
             self._ref_vel_profile = arr
             self._mpc.set_ref_vel_profile(self._ref_vel_profile)
-            # ref_vel_kmph = min(
-            #                 kmh_to_m_per_sec(ref_vel_mps),
-            #                 self._mpc_cfg.v_max)
-            # self._mpc.update_v_max(ref_vel_kmph)
-            self.get_logger().info(f"[RL→MPC] received profile: min={arr.min():.2f} max={arr.max():.2f} mean={arr.mean():.2f}")
+            # self.get_logger().info(f"[RL→MPC] received profile: min={arr.min():.2f} max={arr.max():.2f} mean={arr.mean():.2f}")
 
     def _stop_request_callback(self, msg: Empty) -> None:
         if self._enable_control:
