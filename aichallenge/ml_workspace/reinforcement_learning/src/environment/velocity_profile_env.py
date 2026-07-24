@@ -107,12 +107,14 @@ class VelocityProfileEnv(gym.Env):
         ref_path_csv: str | None = None,
         smoothness_weight: float = 0.1,
         speed_weight: float = 0.01,
+        max_steps: int = 0,  # 0 = unlimited
     ):
         super().__init__()
         self.node = node
         self._executor = executor
         self._horizon = horizon
         self._v_max = v_max
+        self._max_steps = max_steps
 
         # ── Observation space (71 dims) ────────────────────────
         obs_dim = _SECTIONS + 1 + horizon * 3
@@ -320,6 +322,9 @@ class VelocityProfileEnv(gym.Env):
                 reward -= 100.0
 
         terminated = bool(self.colliding and self.speed < 1.0)
+        # Hard step limit: end episode cleanly when max_steps reached
+        if self._max_steps > 0 and self._step_count >= self._max_steps:
+            terminated = True
         if terminated:
             print(" EPISODE TERMINATED")
             self._needs_reset = True

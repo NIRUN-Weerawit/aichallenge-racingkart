@@ -78,6 +78,7 @@ if __name__ == '__main__':
                 v_max=float(vpe.get('v_max', 20.0)),
                 smoothness_weight=float(vpe.get('smoothness_weight', 0.1)),
                 speed_weight=float(vpe.get('speed_weight', 0.01)),
+                max_steps=int(vpe.get('max_steps', 0)),
             )
             env = env_node.env
         else:
