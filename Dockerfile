@@ -21,6 +21,10 @@ ENV QT_QPA_PLATFORMTHEME=qt5ct
 COPY requirements.txt .
 RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
+# Upgrade PyTorch for Blackwell GPUs (RTX 5080/5070 Ti, sm_120)
+RUN python3 -m pip install --no-cache-dir --upgrade torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124 \
+    && python3 -m pip install --no-cache-dir --upgrade stable-baselines3 open3d
+
 # Provide a robust `colcon` wrapper which avoids setuptools "entry script"
 # dependency resolution issues (e.g. pkg_resources evaluating __requires__).
 RUN cat >/usr/local/bin/colcon <<'EOF'
