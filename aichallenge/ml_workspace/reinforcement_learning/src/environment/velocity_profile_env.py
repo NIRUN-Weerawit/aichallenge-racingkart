@@ -335,17 +335,20 @@ class VelocityProfileEnv(gym.Env):
                 reward -= 100.0
 
         terminated = bool(self.colliding and self.speed < 1.0)
-        # Hard step limit: end episode cleanly when max_steps reached
+        truncated = False
+        # Hard step limit: end episode cleanly — no sim reset, just a logging boundary
         if self._max_steps > 0 and self._step_count >= self._max_steps:
-            terminated = True
+            truncated = True
         if terminated:
-            print(" EPISODE TERMINATED")
+            print(" EPISODE TERMINATED (crash/stall)")
             self._needs_reset = True
+        elif truncated:
+            print(" EPISODE TRUNCATED (time limit)")
 
         # Save action for observation continuity
         self._prev_vel_profile = np.array(vel_profile, dtype=np.float32)
 
-        return self._obs(), float(reward), terminated, False, {
+        return self._obs(), float(reward), terminated, truncated, {
             "section_crossed": bool(crossed),
             "mean_v": float(np.mean(vel_profile)),
         }
