@@ -180,7 +180,7 @@ class VelocityProfileEnv(gym.Env):
         """Full AWSIM reset: 1) reset  2) initial pose  3) engage MPC."""
         # 1. Reset AWSIM (domain 0)
         self.node._pub_reset_d0.publish(Empty())
-        time.sleep(3.0)
+        time.sleep(5.0)
 
         # Spin on domain 1 while AWSIM settles
         deadline = time.perf_counter() + 5.0
@@ -193,11 +193,11 @@ class VelocityProfileEnv(gym.Env):
                 self.node._cli_initial_pose.call_async(Trigger.Request())
             except Exception as e:
                 print(f"[WARN] initial-pose service failed: {e}")
-        time.sleep(1.0)
+        time.sleep(5.0)
 
         # 3. Engage — hand control to MPC
         self.node._pub_control_mode.publish(Bool(data=True))
-        time.sleep(1.0)
+        time.sleep(5.0)
 
         # Wait for kart to start moving (up to 5 s)
         deadline = time.perf_counter() + 5.0
