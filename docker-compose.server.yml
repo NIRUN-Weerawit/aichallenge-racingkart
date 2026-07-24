@@ -1,0 +1,105 @@
+x-autoware-base: &autoware-base
+  image: "aichallenge-2025-dev"
+  privileged: true
+  pull_policy: never
+  network_mode: host
+  stop_grace_period: 10s
+  user: "${HOST_UID:-1000}:${HOST_GID:-1000}"
+  environment:
+    - HOME=/tmp
+    - DISPLAY=${DISPLAY}
+    - USER=${USER}
+    - ROS_DISTRO=humble
+    - XAUTHORITY=${XAUTHORITY:-}
+    - QT_X11_NO_MITSHM=1
+    - TZ=Asia/Tokyo
+    - HEADLESS=${HEADLESS:-}
+    - RUN_MODE=${RUN_MODE:-}
+    - SIM_MODE=${SIM_MODE:-}
+    - CMD=${CMD:-}
+    - COLCON_TRACE=${COLCON_TRACE:-}
+    - ROS_HOME=${ROS_HOME:-}
+    - ROS_LOG_DIR=${ROS_LOG_DIR:-}
+    - HOST_UID=${HOST_UID:-}
+    - HOST_GID=${HOST_GID:-}
+    - ROS_DOMAIN_ID=${ROS_DOMAIN_ID:-1}
+    - LOG_DIR=${LOG_DIR:-}
+    - NVIDIA_VISIBLE_DEVICES=all
+    - NVIDIA_DRIVER_CAPABILITIES=all
+  volumes:
+    - ./output:${OUTPUT_ROOT:-/output}
+    - ./aichallenge:/aichallenge
+    - ./remote:/remote
+    - ./vehicle:/vehicle
+    - ./vehicle/cyclonedds.xml:/opt/autoware/cyclonedds.xml
+    - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    - /dev/dri:/dev/dri
+    - ${XAUTHORITY:-/dev/null}:${XAUTHORITY:-/dev/null}:rw
+    - /etc/passwd:/etc/passwd:ro
+    - /etc/group:/etc/group:ro
+  devices:
+    - /dev/dri
+    - /dev/video0
+    - /dev/input
+  group_add:
+    - "${HOST_GID_INPUT:-104}"
+  working_dir: /aichallenge
+  # Bump socket buffer so CycloneDDS can allocate 10MB on lo (no real NIC)
+  sysctls:
+    - net.core.rmem_max=10485760
+    - net.core.rmem_default=10485760
+  deploy:
+    resources:
+      reservations:
+        devices:
+          - driver: nvidia
+            count: all
+            capabilities: ["gpu"]
+
+services:
+  # Combined AWSIM + Autoware (single container, no DDS cross-container issues)
+  combined:
+    <<: *autoware-base
+    command: ["bash", "-lc", "exec /aichallenge/run_combined.bash ${VEHICLES:-1}"]
+
+  # Autoware service
+  autoware:
+    <<: *autoware-base
+    command: ["bash", "-lc", "exec /aichallenge/run_autoware.bash ${RUN_MODE:-awsim} ${ROS_DOMAIN_ID:-1} ${LOG_DIR:-}"]
+
+  # Autoware service
+  autoware-build:
+    <<: *autoware-base
+    command: ["bash", "-lc", "exec /aichallenge/build_autoware.bash ${HOST_UID:-} ${HOST_GID:-}"]
+
+  simulator:
+    <<: *autoware-base
+    command: ["bash", "-lc", "exec /aichallenge/run_simulator.bash"]
+
+  autoware-command:
+    <<: *autoware-base
+    command: ["bash", "-lc", "cd ${CMD_WORKDIR:-/aichallenge} && exec bash -lc \"${CMD:-}\""]
+
+  autoware-simulator-evaluation:
+    <<: *autoware-base
+    image: "aichallenge-2025-eval"
+    volumes:
+      - ./output:${OUTPUT_ROOT:-/output}
+      - ./vehicle/cyclonedds.xml:/opt/autoware/cyclonedds.xml
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - /dev/dri:/dev/dri
+      - ${XAUTHORITY:-/dev/null}:${XAUTHORITY:-/dev/null}:rw
+      - /etc/passwd:/etc/passwd:ro
+      - /etc/group:/etc/group:ro
+    command: ["bash", "-lc", "exec /aichallenge/run_evaluation.bash"]
+
+  # Zenoh service
+  zenoh:
+    <<: *autoware-base
+    working_dir: /vehicle
+    command: ["bash", "-lc", "exec /vehicle/run_zenoh.bash ${VEHICLE_ID:-} ${ROS_DOMAIN_ID:-1} ${LOG_DIR:-}"]
+
+  # Remote visualization
+  rviz2:
+    <<: *autoware-base
+    command: ["bash", "-lc", "exec /aichallenge/utils/run_rviz.bash remote"]
