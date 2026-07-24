@@ -146,17 +146,25 @@ if __name__ == '__main__':
         total = int(algorithm_cfg.get('total_timesteps', 200_000))
 
         # ── TensorBoard callback: log mean_v from info dict ─────
-        from stable_baselines3.common.callbacks import BaseCallback
+        from stable_baselines3.common.callbacks import BaseCallback, CheckpointCallback
+
         class LogMeanVCallback(BaseCallback):
             def _on_step(self):
                 if "mean_v" in self.locals.get("infos", [{}])[0]:
                     self.logger.record("rollout/mean_v", self.locals["infos"][0]["mean_v"])
                 return True
 
+        # ── Checkpoint callback: save every 10k steps ────────────
+        checkpoint_callback = CheckpointCallback(
+            save_freq=10000,
+            save_path=str(run_dir / "checkpoints"),
+            name_prefix="sac_model",
+        )
+
         print(f"Starting training for {total} timesteps...\n")
         model.learn(total_timesteps=total,
                     log_interval=int(algorithm_cfg.get('log_interval', 1)),
-                    callback=LogMeanVCallback())
+                    callback=[LogMeanVCallback(), checkpoint_callback])
         model.save(algorithm_cfg['save_path'])
         print(f"\nTraining complete! Policy saved to: {algorithm_cfg['save_path']}")
 
