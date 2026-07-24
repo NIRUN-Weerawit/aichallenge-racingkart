@@ -135,6 +135,7 @@ class VelocityProfileEnv(gym.Env):
         self._prev_sec = 0
         self._prev_vel_profile = np.zeros(horizon, dtype=np.float32)
         self._gate = _TickGate()
+        self._odom_gate = _TickGate()
         self._needs_reset = False       # set by step(), consumed by next step()
         self._first_reset_done = False  # hard reset done once at boot
         self._prev_speed = 0.0
@@ -206,6 +207,10 @@ class VelocityProfileEnv(gym.Env):
             if self.speed > 0.5:
                 break
 
+        # Flush any stale gate signals accumulated during reset
+        self._gate.clear()
+        self._odom_gate.clear()
+
     def _get_geometry_profiles(self):
         """Curvature + width for the next N waypoints from ref path CSV."""
         n_wps = len(self._kappa)
@@ -237,16 +242,21 @@ class VelocityProfileEnv(gym.Env):
         ]).astype(np.float32)
 
     def _spin_until_tick(self, timeout=0.5):
-        """Block until AWSIM publishes a fresh tick or timeout."""
+        """Block until BOTH status and odometry callbacks fire, or timeout."""
         deadline = time.perf_counter() + timeout
         while time.perf_counter() < deadline:
-            if self._gate.is_set():
+            got_status = self._gate.is_set()
+            got_odom = self._odom_gate.is_set()
+            if got_status and got_odom:
                 self._gate.clear()
+                self._odom_gate.clear()
                 return True
             self._executor.spin_once(timeout_sec=0.01)
+        # Timeout — use whatever we have
         if self._gate.is_set():
             self._gate.clear()
-            return True
+        if self._odom_gate.is_set():
+            self._odom_gate.clear()
         print("[WARN] missed AWSIM tick -> using stale obs")
         return False
 
@@ -262,6 +272,7 @@ class VelocityProfileEnv(gym.Env):
 
         with self._gate:
             self._reset_state()
+        self._odom_gate.clear()
 
         return self._obs(), {}
 
@@ -272,6 +283,7 @@ class VelocityProfileEnv(gym.Env):
             with self._gate:
                 self._reset_state()
             self._needs_reset = False
+            self._odom_gate.clear()
             return self._obs(), 0.0, False, False, {"reset": True}
 
         # ── Wait for AWSIM tick ────────────────────────────────
@@ -349,9 +361,9 @@ class VelocityProfileEnv(gym.Env):
         self._gate.signal()
 
     def on_odom(self, msg):
-        with self._gate:
+        with self._odom_gate:
             self.speed = float(msg.twist.twist.linear.x)
-        self._gate.signal()
+        self._odom_gate.signal()
 
 
 # ---------------------------------------------------------------------------
