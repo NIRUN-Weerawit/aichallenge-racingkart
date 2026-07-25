@@ -194,10 +194,9 @@ if __name__ == '__main__':
                 step    += 1
                 done    = tr or trunc
 
-                spd = info.get('speed', 0.0)
-                sec = info.get('section', '?')
+                mean_v = info.get('mean_v', 0.0)
                 print(f"  {step:4d} | reward={rew:+7.2f} | "
-                      f"speed={spd:5.2f} m/s | section={sec}")
+                      f"mean_v={mean_v:.2f} m/s | speed={env.speed:.2f} | section={env.section}")
 
             print(f"> Episode complete: total_reward={ep_reward:.1f} over {step} steps.")
 
